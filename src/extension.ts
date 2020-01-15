@@ -5,13 +5,6 @@ import * as vscode from "vscode";
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
-  // Use the console to output diagnostic information (console.log) and errors (console.error)
-  // This line of code will only be executed once when your extension is activated
-  console.log('Congratulations, your extension "aspsupport" is now active!');
-
-  // The command has been defined in the package.json file
-  // Now provide the implementation of the command with registerCommand
-  // The commandId parameter must match the command field in package.json
   let disposable = vscode.commands.registerCommand(
     "extension.aspsupport",
     () => {
@@ -23,8 +16,9 @@ export function activate(context: vscode.ExtensionContext) {
       }
 
       let prefix = filename.split(" ").join("\\ ");
-      vscode.window
-        .showQuickPick(["当前lp文件", "完整目录lp文件"], {
+      let suffix = "";
+      let suf3 = vscode.window
+        .showQuickPick(["当前lp文件", "选择当前目录下lp文件"], {
           canPickMany: false,
           ignoreFocusOut: true,
           matchOnDescription: true,
@@ -34,19 +28,21 @@ export function activate(context: vscode.ExtensionContext) {
         .then(function(user_choice) {
           // console.log(user_choice);
           if (user_choice === "当前lp文件") {
-            terminal.sendText(
-              "clingo 0 " +
-                vscode.window.activeTextEditor?.document.uri.path
-                  .split(" ")
-                  .join("\\ ")
-            );
+            if (
+              vscode.window.activeTextEditor?.document.uri.path !== undefined
+            ) {
+              suffix = vscode.window.activeTextEditor?.document.uri.path
+                .split(" ")
+                .join("\\ ");
+              return suffix;
+            }
           } else {
             let cwd = vscode.workspace.workspaceFolders;
             let filename_list: string[] = [];
             let choices = "";
             // 获取该目录下全部文件名，存入filename_list中
             if (cwd !== undefined) {
-              vscode.workspace.fs
+            let suf2 =  vscode.workspace.fs
                 .readDirectory(cwd[0].uri)
                 .then(function(arrays) {
                   for (const arr of arrays) {
@@ -56,7 +52,7 @@ export function activate(context: vscode.ExtensionContext) {
                   }
                   console.log(filename_list);
                   // console.log(prefix + '\/' + arr[0] + ' ');
-                  vscode.window
+                  let suf = vscode.window
                     .showQuickPick(filename_list, {
                       canPickMany: true,
                       ignoreFocusOut: false,
@@ -70,22 +66,31 @@ export function activate(context: vscode.ExtensionContext) {
                           choices = choices + prefix + "/" + choice + " ";
                         }
                       }
-                      terminal.sendText("clingo 0 " + choices);
+                      return choices;
                     });
+                    return suf;
                 });
+                return suf2;
             }
           }
+        });
+        
+        suf3.then(function(id) {
+          console.log('id' + id);
+          if(id !== undefined){
+            suffix = id;
+            // console.log(res);
+            terminal.show(true);
+            terminal.sendText("clingo 0 " + suffix);
+          }
+        });
 
-          // console.log(res);
-
-          terminal.show(true);
           // Display a message box to the user
           vscode.window.showInformationMessage("terminal shown!");
         });
 
       context.subscriptions.push(disposable);
-    }
-  );
+
 }
 
 // this method is called when your extension is deactivated
